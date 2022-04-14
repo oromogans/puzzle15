@@ -1,5 +1,5 @@
-use rand::Rng;
 use std::io::stdin;
+use macroquad::prelude::*;
 
 #[derive(Debug)]
 struct Field {
@@ -58,11 +58,10 @@ fn get_valid_moves(zero: (usize, usize)) -> Vec<(usize, usize)> {
 }
 
 fn make_random_move(f: Field, times: i8) -> Field {
-    let mut rng = rand::thread_rng();
     let mut updated_field = f;
     for _ in 0..times {
         let cross = get_valid_moves(updated_field.zero);
-        let index_move = rng.gen_range(0..cross.len());
+        let index_move = rand::gen_range(0, cross.len());
         updated_field = swap_zero(&updated_field, cross[index_move]);
     }
     updated_field
@@ -125,57 +124,84 @@ fn is_done(field: &Field) -> bool {
     true
 }
 
-#[test]
-fn test_uinput_convert() {
-    let uinp = "a1".to_string();
-    let result = user_input_to_coord(&uinp);
-    assert_eq!(result.unwrap(), (3, 0));
-}
+#[macroquad::main("Puzzle 15")]
+async fn main() {
+    println!("Hee");
+    let y_points = [0.25, 0.5, 0.75].map(|x|{x*screen_height()});
+    let x_points = [0.25, 0.5, 0.75].map(|x|{x*screen_width()});
 
-#[test]
-fn test_shuffle() {
-    let field = Field::new();
-    let upd = make_random_move(field, 60);
-    println!("{:?}", upd.field);
-    assert_eq!(upd.field.len(), 4)
-}
+    let y_centers = [0.125, 0.375, 0.625, 0.875].map(|x|{x*screen_height()});
+    let x_centers = [0.125, 0.375, 0.625, 0.875].map(|x|{x*screen_width()});
+    loop {
+        clear_background(LIGHTGRAY);
+        for y_p in y_points {
+            draw_line(
+                0.0,
+                y_p,
+                screen_width(),
+                y_p,
+                1.0,
+                BLACK,
+                );
 
-#[test]
-fn test_get_valid_moves_from_zero() {
-    let expected: Vec<(usize, usize)> = [(1, 0), (0, 1)].to_vec();
-    let expected_2: Vec<(usize, usize)> = [(2, 3), (3, 2)].to_vec();
-    assert_eq!(get_valid_moves((0, 0)), expected);
-    assert_eq!(get_valid_moves((3, 3)), expected_2);
-}
-
-#[test]
-fn test_swap() {
-    let field = Field::new();
-    let updated = swap_zero(&field, (1, 0));
-    assert_eq!(updated.zero, (1, 0));
-    assert_eq!(updated.field[1][0], 0);
-    assert_eq!(updated.field[0][0], 4);
-}
-
-fn main() {
-    let field = Field::new();
-    let shuffled = make_random_move(field, 30);
-    shuffled.draw();
-    let mut current = shuffled;
-    while !is_done(&current) {
-        let mut inp = String::new();
-        stdin().read_line(&mut inp).expect("0");
-        let user_coord = user_input_to_coord(&inp);
-        if user_coord.is_none() {
-            println!("Not valid move!");
-            continue;
         }
-        if is_valid_move(&current, &user_coord.unwrap()) {
-            current = swap_zero(&current, user_coord.unwrap());
-            current.draw();
-        } else {
-            println!("Not valid move!");
-            continue;
+        for x_p in x_points {
+            draw_line(
+                x_p,
+                0.0,
+                x_p,
+                screen_height(),
+                1.0,
+                BLACK
+            );
+
+        for x_c in x_centers{
+            for y_c in y_centers {
+                draw_text(
+                    format!("{}", 0).as_str(),
+                    x_c,
+                    y_c,
+                    20.,
+                    DARKGRAY,
+                    );
+            }
         }
+        }
+        next_frame().await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_uinput_convert() {
+        let uinp = "a1".to_string();
+        let result = user_input_to_coord(&uinp);
+        assert_eq!(result.unwrap(), (3, 0));
+    }
+
+    #[test]
+    fn test_shuffle() {
+        let field = Field::new();
+        let upd = make_random_move(field, 60);
+        println!("{:?}", upd.field);
+        assert_eq!(upd.field.len(), 4)
+    }
+
+    #[test]
+    fn test_get_valid_moves_from_zero() {
+        let expected: Vec<(usize, usize)> = [(1, 0), (0, 1)].to_vec();
+        let expected_2: Vec<(usize, usize)> = [(2, 3), (3, 2)].to_vec();
+        assert_eq!(get_valid_moves((0, 0)), expected);
+        assert_eq!(get_valid_moves((3, 3)), expected_2);
+    }
+
+    #[test]
+    fn test_swap() {
+        let field = Field::new();
+        let updated = swap_zero(&field, (1, 0));
+        assert_eq!(updated.zero, (1, 0));
+        assert_eq!(updated.field[1][0], 0);
+        assert_eq!(updated.field[0][0], 4);
     }
 }
