@@ -1,5 +1,5 @@
-use std::io::stdin;
 use macroquad::prelude::*;
+use std::io::stdin;
 
 #[derive(Debug)]
 struct Field {
@@ -9,17 +9,20 @@ struct Field {
 
 impl Field {
     fn new() -> Field {
-        let mut value = 0;
+        let mut value = 1;
         let mut field = [[0, 0, 0, 0]; 4];
         for i in 0..4 {
             for j in 0..4 {
+                if value == 16 {
+                    value = 0
+                };
                 field[i][j] = value;
                 value += 1;
             }
         }
         Field {
             field,
-            zero: (0, 0),
+            zero: (3, 3),
         }
     }
 
@@ -112,60 +115,84 @@ fn is_valid_move(field: &Field, mv: &(usize, usize)) -> bool {
 }
 
 fn is_done(field: &Field) -> bool {
-    let mut shouldbe = 0;
+    let mut shouldbe = 1;
     for i in 0..4 {
         for j in 0..4 {
             if field.field[i][j] != shouldbe {
                 return false;
             }
+            if shouldbe < 15 {
             shouldbe += 1;
+            } else {
+                shouldbe = 0;
+            }
         }
     }
     true
 }
 
+fn mouse_coordiante_to_field_coordinate(coord: (f32, f32)) -> (usize, usize) {
+    let mut x = 0;
+    let mut y = 0;
+
+    let y_points = [0.25, 0.5, 0.75, 1.0].map(|x| x * screen_height());
+    let x_points = [0.25, 0.5, 0.75, 1.0].map(|x| x * screen_width());
+
+    for (index_y, y_p) in y_points.iter().enumerate() {
+        if coord.1 < *y_p {
+            x = index_y;
+            break;
+        };
+    }
+    for (index_x, x_p) in x_points.iter().enumerate() {
+        if coord.0 < *x_p {
+            y = index_x;
+            break;
+        };
+    }
+    return (x, y);
+}
+
 #[macroquad::main("Puzzle 15")]
 async fn main() {
-    println!("Hee");
-    let y_points = [0.25, 0.5, 0.75].map(|x|{x*screen_height()});
-    let x_points = [0.25, 0.5, 0.75].map(|x|{x*screen_width()});
+    let f = Field::new();
+    let mut cellcolor;
+    let mut f_mixed = make_random_move(f, 20);
+    let y_points = [0.25, 0.5, 0.75].map(|x| x * screen_height());
+    let x_points = [0.25, 0.5, 0.75].map(|x| x * screen_width());
 
-    let y_centers = [0.125, 0.375, 0.625, 0.875].map(|x|{x*screen_height()});
-    let x_centers = [0.125, 0.375, 0.625, 0.875].map(|x|{x*screen_width()});
+    let y_centers = [0.125, 0.375, 0.625, 0.875].map(|x| x * screen_height());
+    let x_centers = [0.125, 0.375, 0.625, 0.875].map(|x| x * screen_width());
     loop {
         clear_background(LIGHTGRAY);
-        for y_p in y_points {
-            draw_line(
-                0.0,
-                y_p,
-                screen_width(),
-                y_p,
-                1.0,
-                BLACK,
-                );
+        if is_mouse_button_released(MouseButton::Left) {
+            let pos = mouse_position();
+            let mtc = mouse_coordiante_to_field_coordinate(pos);
 
-        }
-        for x_p in x_points {
-            draw_line(
-                x_p,
-                0.0,
-                x_p,
-                screen_height(),
-                1.0,
-                BLACK
-            );
-
-        for x_c in x_centers{
-            for y_c in y_centers {
-                draw_text(
-                    format!("{}", 0).as_str(),
-                    x_c,
-                    y_c,
-                    20.,
-                    DARKGRAY,
-                    );
+            if is_valid_move(&f_mixed, &mtc) {
+                f_mixed = swap_zero(&f_mixed, mtc);
             }
         }
+        for y_p in y_points {
+            draw_line(0.0, y_p, screen_width(), y_p, 1.0, BLACK);
+        }
+        for x_p in x_points {
+            draw_line(x_p, 0.0, x_p, screen_height(), 1.0, BLACK);
+        }
+        {
+            if is_done(&f_mixed) {
+                cellcolor = DARKGREEN;
+            } else {
+                cellcolor = DARKGRAY;
+            }
+            for (i, y_c) in y_centers.iter().enumerate() {
+                for (j, x_c) in x_centers.iter().enumerate() {
+                    let n = f_mixed.field[i][j];
+                    if n != 0 {
+                        draw_text(format!("{}", n).as_str(), *x_c, *y_c, 50., cellcolor);
+                    }
+                }
+            }
         }
         next_frame().await
     }
