@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./img/logo.svg" alt="logo">
+    <img src="./img/logo.png" alt="logo">
 </div>
 
 # Simple implementation of puzzle 15 on Rust
